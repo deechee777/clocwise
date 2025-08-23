@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clocwise - Debug Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Clocwise Debug Test</h1>
+    <p>Check the console (F12) for debug messages</p>
+    
+    <div id="status">Loading...</div>
+    
+    <form id="testForm">
+        <input type="email" id="email" placeholder="Email" required><br><br>
+        <input type="password" id="password" placeholder="Password" required><br><br>
+        <button type="submit">Test Signup</button>
+    </form>
+
+    <script>
+        // Debug logging
+        console.log('🚀 Script started');
+        
+        // Check if supabase loaded
+        console.log('📦 Supabase loaded:', typeof supabase);
+        
+        // Your Supabase credentials
+        const SUPABASE_URL = 'https://nayyaomcfgfaneyjhqbu.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5heXlhb21jZmdmYW5leWpocWJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU4MDU3MjcsImV4cCI6MjA3MTM4MTcyN30.kokv0VvDENa2-nAKPHpfGmadhS63jejoQ-EIDLgHL2U';
+        
+        console.log('🔗 URL:', SUPABASE_URL);
+        console.log('🔑 Key:', SUPABASE_ANON_KEY.substring(0, 20) + '...');
+        
+        // Initialize Supabase
+        let supabaseClient;
+        try {
+            const { createClient } = supabase;
+            supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            console.log('✅ Supabase client created');
+            document.getElementById('status').textContent = 'Supabase connected!';
+        } catch (error) {
+            console.error('❌ Supabase client error:', error);
+            document.getElementById('status').textContent = 'Error: ' + error.message;
+        }
+        
+        // Test form
+        document.getElementById('testForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            console.log('📝 Form submitted');
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            console.log('📧 Email:', email);
+            console.log('🔐 Password length:', password.length);
+            
+            try {
+                console.log('🔄 Attempting signup...');
+                const { data, error } = await supabaseClient.auth.signUp({
+                    email: email,
+                    password: password
+                });
+                
+                if (error) {
+                    console.error('❌ Signup error:', error);
+                    alert('Error: ' + error.message);
+                } else {
+                    console.log('✅ Signup success:', data);
+                    alert('Success! Check console for details.');
+                }
+            } catch (error) {
+                console.error('💥 Catch error:', error);
+                alert('Catch error: ' + error.message);
+            }
+        });
+        
+        console.log('🎯 Script loaded completely');
+    </script>
+</body>
+</html>
