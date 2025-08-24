@@ -215,6 +215,16 @@
             transform: translateY(-5px);
         }
 
+        .feature-demo-btn {
+            margin-top: 15px;
+            color: #38a169;
+            font-weight: 600;
+        }
+
+        .feature-card:hover .feature-demo-btn {
+            color: #2f855a;
+        }
+
         .feature-icon {
             width: 60px;
             height: 60px;
@@ -461,7 +471,7 @@
                 <p>Stop losing money on unbilled hours. Clocwise helps freelancers track time, manage clients, and create professional invoices—all in one place.</p>
                 <div class="cta-buttons">
                     <a href="/auth" class="btn btn-primary">Start Free Trial</a>
-                    <a href="#" class="btn btn-secondary">Watch Demo</a>
+                    <a href="/dashboard" class="btn btn-secondary">Try Live Demo</a>
                 </div>
             </div>
         </div>
@@ -474,28 +484,40 @@
             <p class="section-subtitle">Built specifically for freelancers who want to get paid fairly for every minute worked</p>
             
             <div class="features-grid">
-                <div class="feature-card">
+                <div class="feature-card" onclick="window.location.href='/dashboard'" style="cursor: pointer;">
                     <div class="feature-icon">⏱️</div>
                     <h3>One-Click Time Tracking</h3>
                     <p>Start and stop timers instantly. Track time across multiple projects with just one click.</p>
+                    <div class="feature-demo-btn">
+                        <small>Click to try demo →</small>
+                    </div>
                 </div>
                 
-                <div class="feature-card">
+                <div class="feature-card" onclick="window.location.href='/dashboard'" style="cursor: pointer;">
                     <div class="feature-icon">👥</div>
                     <h3>Client Management</h3>
                     <p>Organize all your clients and projects in one place. Set different hourly rates for each client.</p>
+                    <div class="feature-demo-btn">
+                        <small>Click to try demo →</small>
+                    </div>
                 </div>
                 
-                <div class="feature-card">
+                <div class="feature-card" onclick="window.location.href='/dashboard'" style="cursor: pointer;">
                     <div class="feature-icon">📊</div>
                     <h3>Detailed Reports</h3>
                     <p>See exactly where your time goes with visual reports and analytics that help you work smarter.</p>
+                    <div class="feature-demo-btn">
+                        <small>Click to try demo →</small>
+                    </div>
                 </div>
                 
-                <div class="feature-card">
+                <div class="feature-card" onclick="window.location.href='/dashboard'" style="cursor: pointer;">
                     <div class="feature-icon">💰</div>
                     <h3>Professional Invoices</h3>
                     <p>Generate beautiful invoices automatically from your tracked time. Get paid faster with professional billing.</p>
+                    <div class="feature-demo-btn">
+                        <small>Click to try demo →</small>
+                    </div>
                 </div>
                 
                 <div class="feature-card">
@@ -583,7 +605,7 @@
                         <li>Advanced analytics</li>
                         <li>API access</li>
                     </ul>
-                    <a href="/auth" class="btn btn-primary">Contact Sales</a>
+                    <a href="/auth" class="btn btn-primary">Get Started</a>
                 </div>
             </div>
         </div>
