@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clocwise - Sign Up</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * {
             margin: 0;
@@ -720,34 +719,40 @@
 
             try {
                 const formData = new FormData(e.target);
-                const { data, error } = await supabaseClient.auth.signUp({
-                    email: formData.get('email'),
-                    password: formData.get('password'),
-                    options: {
-                        data: {
-                            full_name: formData.get('fullName')
-                        }
-                    }
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        fullName: formData.get('fullName'),
+                        email: formData.get('email'),
+                        password: formData.get('password')
+                    })
                 });
 
-                if (error) throw error;
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Registration failed');
+                }
 
                 setLoading('signupBtn', false);
                 
-                if (data.user?.email_confirmed_at) {
-                    showSuccessMessage('Account created successfully! Redirecting to your dashboard...');
-                    setTimeout(() => {
-                        window.location.href = '/dashboard.html';
-                    }, 2000);
-                } else {
-                    showSuccessMessage('Account created! Please check your email to confirm your account before logging in.');
-                }
+                // Store JWT token
+                localStorage.setItem('authToken', data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                
+                showSuccessMessage('Account created successfully! Redirecting to your dashboard...');
+                setTimeout(() => {
+                    window.location.href = '/dashboard';
+                }, 2000);
 
             } catch (error) {
                 setLoading('signupBtn', false);
                 
                 // Show appropriate error message
-                if (error.message.includes('already registered')) {
+                if (error.message.includes('already exists')) {
                     showError('emailError', 'An account with this email already exists');
                 } else {
                     showError('emailError', error.message || 'Registration failed. Please try again.');
@@ -764,27 +769,42 @@
 
             try {
                 const formData = new FormData(e.target);
-                const { data, error } = await supabaseClient.auth.signInWithPassword({
-                    email: formData.get('loginEmail'),
-                    password: formData.get('loginPassword')
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: formData.get('loginEmail'),
+                        password: formData.get('loginPassword')
+                    })
                 });
 
-                if (error) throw error;
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Login failed');
+                }
 
                 setLoading('loginBtn', false);
+                
+                // Store JWT token
+                localStorage.setItem('authToken', data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                
                 showSuccessMessage('Welcome back! Redirecting to your dashboard...');
 
-                // Redirect after 1 second
+                // Redirect after 2 seconds
                 setTimeout(() => {
-                    window.location.href = '/dashboard.html';
+                    window.location.href = '/dashboard';
                 }, 2000);
 
             } catch (error) {
                 setLoading('loginBtn', false);
                 
                 // Show appropriate error message
-                if (error.message.includes('Invalid login credentials')) {
-                    showError('passwordError', 'Invalid email or password');
+                if (error.message.includes('Invalid credentials')) {
+                    showError('loginPasswordError', 'Invalid email or password');
                 } else {
                     showError('loginEmailError', error.message || 'Login failed. Please try again.');
                 }
@@ -808,18 +828,15 @@
         }
 
         // Check if user is already logged in when page loads
-        document.addEventListener('DOMContentLoaded', async function() {
-            try {
-                const { data: { session }, error } = await supabaseClient.auth.getSession();
-                
-                if (session) {
-                    showSuccessMessage('You are already logged in! Redirecting...');
-                    setTimeout(() => {
-                        window.location.href = '/dashboard.html';
-                    }, 1500);
-                }
-            } catch (error) {
-                console.log('No existing session found');
+        document.addEventListener('DOMContentLoaded', function() {
+            const authToken = localStorage.getItem('authToken');
+            const user = localStorage.getItem('user');
+            
+            if (authToken && user) {
+                showSuccessMessage('You are already logged in! Redirecting...');
+                setTimeout(() => {
+                    window.location.href = '/dashboard';
+                }, 1500);
             }
         });
     </script>
