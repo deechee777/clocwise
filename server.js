@@ -7,7 +7,7 @@ const { Pool } = require('pg');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this';
 
 // Database connection - Supabase PostgreSQL
@@ -15,6 +15,16 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
     rejectUnauthorized: false
+  }
+});
+
+// Test database connection
+pool.query('SELECT NOW()', (err, res) => {
+  if (err) {
+    console.error('❌ Database connection failed:', err.message);
+    console.error('💡 Please check your DATABASE_URL in .env file');
+  } else {
+    console.log('✅ Database connected successfully');
   }
 });
 
@@ -43,6 +53,10 @@ const authenticateToken = (req, res, next) => {
 
 // ===== AUTHENTICATION ROUTES =====
 
+// Simple in-memory storage as fallback (for demo purposes)
+let memoryUsers = new Map();
+let userIdCounter = 1;
+
 // Register new user
 app.post('/api/auth/register', async (req, res) => {
   try {
@@ -57,46 +71,94 @@ app.post('/api/auth/register', async (req, res) => {
       return res.status(400).json({ error: 'Password must be at least 6 characters' });
     }
 
-    // Check if user already exists
-    const existingUser = await pool.query(
-      'SELECT id FROM users WHERE email = $1',
-      [email.toLowerCase()]
-    );
+    const emailLower = email.toLowerCase();
 
-    if (existingUser.rows.length > 0) {
-      return res.status(400).json({ error: 'User already exists' });
-    }
+    try {
+      // Try database first
+      const existingUser = await pool.query(
+        'SELECT id FROM users WHERE email = $1',
+        [emailLower]
+      );
 
-    // Hash password
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-    // Create user
-    const newUser = await pool.query(
-      'INSERT INTO users (full_name, email, password_hash, plan, created_at) VALUES ($1, $2, $3, $4, NOW()) RETURNING id, full_name, email, plan, created_at',
-      [fullName, email.toLowerCase(), hashedPassword, 'starter']
-    );
-
-    const user = newUser.rows[0];
-
-    // Generate JWT token
-    const token = jwt.sign(
-      { userId: user.id, email: user.email },
-      JWT_SECRET,
-      { expiresIn: '30d' }
-    );
-
-    res.status(201).json({
-      message: 'User created successfully',
-      token,
-      user: {
-        id: user.id,
-        fullName: user.full_name,
-        email: user.email,
-        plan: user.plan,
-        createdAt: user.created_at
+      if (existingUser.rows.length > 0) {
+        return res.status(400).json({ error: 'User already exists' });
       }
-    });
+
+      // Hash password
+      const saltRounds = 10;
+      const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+      // Create user in database
+      const newUser = await pool.query(
+        'INSERT INTO users (full_name, email, password_hash, plan, created_at) VALUES ($1, $2, $3, $4, NOW()) RETURNING id, full_name, email, plan, created_at',
+        [fullName, emailLower, hashedPassword, 'starter']
+      );
+
+      const user = newUser.rows[0];
+
+      // Generate JWT token
+      const token = jwt.sign(
+        { userId: user.id, email: user.email },
+        JWT_SECRET,
+        { expiresIn: '30d' }
+      );
+
+      res.status(201).json({
+        message: 'User created successfully',
+        token,
+        user: {
+          id: user.id,
+          fullName: user.full_name,
+          email: user.email,
+          plan: user.plan,
+          createdAt: user.created_at
+        }
+      });
+
+    } catch (dbError) {
+      console.log('Database unavailable, using memory storage');
+      
+      // Fallback to memory storage
+      if (memoryUsers.has(emailLower)) {
+        return res.status(400).json({ error: 'User already exists' });
+      }
+
+      // Hash password
+      const saltRounds = 10;
+      const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+      // Create user in memory
+      const userId = userIdCounter++;
+      const user = {
+        id: userId,
+        full_name: fullName,
+        email: emailLower,
+        password_hash: hashedPassword,
+        plan: 'starter',
+        created_at: new Date()
+      };
+
+      memoryUsers.set(emailLower, user);
+
+      // Generate JWT token
+      const token = jwt.sign(
+        { userId: user.id, email: user.email },
+        JWT_SECRET,
+        { expiresIn: '30d' }
+      );
+
+      res.status(201).json({
+        message: 'User created successfully',
+        token,
+        user: {
+          id: user.id,
+          fullName: user.full_name,
+          email: user.email,
+          plan: user.plan,
+          createdAt: user.created_at
+        }
+      });
+    }
 
   } catch (error) {
     console.error('Registration error:', error);
@@ -113,42 +175,81 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    // Find user
-    const userResult = await pool.query(
-      'SELECT id, full_name, email, password_hash, plan, created_at FROM users WHERE email = $1',
-      [email.toLowerCase()]
-    );
+    const emailLower = email.toLowerCase();
 
-    if (userResult.rows.length === 0) {
-      return res.status(400).json({ error: 'Invalid credentials' });
-    }
+    try {
+      // Try database first
+      const userResult = await pool.query(
+        'SELECT id, full_name, email, password_hash, plan, created_at FROM users WHERE email = $1',
+        [emailLower]
+      );
 
-    const user = userResult.rows[0];
-
-    // Check password
-    const validPassword = await bcrypt.compare(password, user.password_hash);
-    if (!validPassword) {
-      return res.status(400).json({ error: 'Invalid credentials' });
-    }
-
-    // Generate JWT token
-    const token = jwt.sign(
-      { userId: user.id, email: user.email },
-      JWT_SECRET,
-      { expiresIn: '30d' }
-    );
-
-    res.json({
-      message: 'Login successful',
-      token,
-      user: {
-        id: user.id,
-        fullName: user.full_name,
-        email: user.email,
-        plan: user.plan,
-        createdAt: user.created_at
+      if (userResult.rows.length === 0) {
+        return res.status(400).json({ error: 'Invalid credentials' });
       }
-    });
+
+      const user = userResult.rows[0];
+
+      // Check password
+      const validPassword = await bcrypt.compare(password, user.password_hash);
+      if (!validPassword) {
+        return res.status(400).json({ error: 'Invalid credentials' });
+      }
+
+      // Generate JWT token
+      const token = jwt.sign(
+        { userId: user.id, email: user.email },
+        JWT_SECRET,
+        { expiresIn: '30d' }
+      );
+
+      res.json({
+        message: 'Login successful',
+        token,
+        user: {
+          id: user.id,
+          fullName: user.full_name,
+          email: user.email,
+          plan: user.plan,
+          createdAt: user.created_at
+        }
+      });
+
+    } catch (dbError) {
+      console.log('Database unavailable, using memory storage');
+      
+      // Fallback to memory storage
+      const user = memoryUsers.get(emailLower);
+      
+      if (!user) {
+        return res.status(400).json({ error: 'Invalid credentials' });
+      }
+
+      // Check password
+      const validPassword = await bcrypt.compare(password, user.password_hash);
+      if (!validPassword) {
+        return res.status(400).json({ error: 'Invalid credentials' });
+      }
+
+      // Generate JWT token
+      const token = jwt.sign(
+        { userId: user.id, email: user.email },
+        JWT_SECRET,
+        { expiresIn: '30d' }
+      );
+
+      res.json({
+        message: 'Login successful',
+        token,
+        user: {
+          id: user.id,
+          fullName: user.full_name,
+          email: user.email,
+          plan: user.plan,
+          createdAt: user.created_at
+        }
+      });
+    }
 
   } catch (error) {
     console.error('Login error:', error);

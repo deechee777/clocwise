@@ -730,13 +730,16 @@
     </div>
 
     <script>
+        // API Configuration - works for both local and production
+        const API_BASE_URL = window.location.hostname === 'localhost' ? 'http://localhost:3001' : window.location.origin;
+        
         // Supabase Configuration - Consider moving to environment variables
         // API Helper Function for JWT Authentication
         async function apiRequest(endpoint, options = {}) {
             const authToken = localStorage.getItem('authToken');
             
             if (!authToken) {
-                window.location.href = '/auth';
+                window.location.href = 'auth.html';
                 return;
             }
             
@@ -757,13 +760,13 @@
             };
             
             try {
-                const response = await fetch(endpoint, finalOptions);
+                const response = await fetch(`${API_BASE_URL}${endpoint}`, finalOptions);
                 
                 if (response.status === 401) {
                     // Token expired or invalid
                     localStorage.removeItem('authToken');
                     localStorage.removeItem('user');
-                    window.location.href = '/auth';
+                    window.location.href = 'auth.html';
                     return;
                 }
                 
@@ -799,7 +802,7 @@
                 const userData = localStorage.getItem('user');
                 
                 if (!authToken || !userData) {
-                    window.location.href = '/auth';
+                    window.location.href = 'auth.html';
                     return;
                 }
 
@@ -820,7 +823,7 @@
                 populateProjectSelects();
             } catch (error) {
                 console.error('Error initializing dashboard:', error);
-                window.location.href = '/auth';
+                window.location.href = 'auth.html';
             }
         }
 
@@ -1581,7 +1584,7 @@
                 localStorage.removeItem('user');
                 
                 // Redirect to auth page
-                window.location.href = '/auth';
+                window.location.href = 'auth.html';
             }
         }
 
