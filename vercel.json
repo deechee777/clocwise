@@ -34,6 +34,8 @@
     }
   ],
   "env": {
-    "NODE_ENV": "production"
+    "NODE_ENV": "production",
+    "DATABASE_URL": "postgresql://postgres:AqwHOvzToLkHXPqv@db.nayyaomcfgfaneyjhqbu.supabase.co:5432/postgres?sslmode=require",
+    "JWT_SECRET": "clocwise_production_jwt_secret_key_2025"
   }
 }
